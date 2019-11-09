@@ -1,4 +1,4 @@
-package com.uddernetworks.reddicord;
+package com.uddernetworks.reddicord.config;
 
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.electronwill.nightconfig.core.file.FileConfig;
@@ -15,6 +15,14 @@ public class ConfigManager {
     public void init() {
         config = CommentedFileConfig.builder(this.fileName).autosave().build();
         config.load();
+    }
+
+    public <T> T get(Config path) {
+        return config.get(path.getPath());
+    }
+
+    public <T> T get(Config path, T def) {
+        return config.getOrElse(path.getPath(), def);
     }
 
     public FileConfig getConfig() {

@@ -4,3 +4,4 @@ build/
 *.log
 secret.conf
 *.txt
+tokens.json
