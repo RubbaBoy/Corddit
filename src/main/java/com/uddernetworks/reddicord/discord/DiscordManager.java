@@ -4,6 +4,7 @@ import com.uddernetworks.reddicord.Reddicord;
 import com.uddernetworks.reddicord.config.ConfigManager;
 import com.uddernetworks.reddicord.discord.command.CommandManager;
 import com.uddernetworks.reddicord.discord.command.HelpCommand;
+import com.uddernetworks.reddicord.discord.command.LinkCommand;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -40,7 +41,8 @@ public class DiscordManager extends ListenerAdapter {
                 .build();
 
         (this.commandManager = new CommandManager(reddicord))
-                .registerCommand(new HelpCommand(reddicord));
+                .registerCommand(new HelpCommand(reddicord))
+                .registerCommand(new LinkCommand(reddicord));
     }
 
     @Override

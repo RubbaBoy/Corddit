@@ -1,19 +1,30 @@
 package com.uddernetworks.reddicord.reddit;
 
 import com.uddernetworks.reddicord.Reddicord;
+import com.uddernetworks.reddicord.ThreadUtil;
 import com.uddernetworks.reddicord.config.ConfigManager;
+import com.uddernetworks.reddicord.discord.EmbedUtils;
+import com.uddernetworks.reddicord.reddit.web.WebCallback;
 import net.dean.jraw.RedditClient;
+import net.dean.jraw.http.NetworkAdapter;
 import net.dean.jraw.http.OkHttpNetworkAdapter;
 import net.dean.jraw.http.UserAgent;
 import net.dean.jraw.oauth.Credentials;
 import net.dean.jraw.oauth.JsonFileTokenStore;
 import net.dean.jraw.oauth.OAuthHelper;
+import net.dean.jraw.oauth.StatefulAuthHelper;
+import net.dv8tion.jda.api.entities.Member;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static com.uddernetworks.reddicord.config.Config.CLIENTID;
 import static com.uddernetworks.reddicord.config.Config.CLIENTSECRET;
@@ -26,6 +37,13 @@ public class RedditManager {
     private final Reddicord reddicord;
     private final ConfigManager configManager;
 
+    private final List<RedditClient> clientCache = Collections.synchronizedList(new ArrayList<>());
+
+    private Credentials credentials;
+    private NetworkAdapter networkAdapter;
+    private JsonFileTokenStore store;
+    private StatefulAuthHelper statefulAuthHelper;
+
     public RedditManager(Reddicord reddicord) {
         this.reddicord = reddicord;
         this.configManager = reddicord.getConfigManager();
@@ -33,47 +51,50 @@ public class RedditManager {
 
     // TODO: This will be refactored completely to allow for dynamic everything. This is a proof-of-concept currently
     public void init(File tokenStore) throws URISyntaxException, IOException {
-        var oauthCreds = Credentials.webapp(configManager.get(CLIENTID), configManager.get(CLIENTSECRET), configManager.get(REDIRECTURL));
+        credentials = Credentials.webapp(configManager.get(CLIENTID), configManager.get(CLIENTSECRET), configManager.get(REDIRECTURL));
 
         var userAgent = new UserAgent("bot", "com.uddernetworks.reddicord", "1.0.0", "Reddicord");
 
-        var networkAdapter = new OkHttpNetworkAdapter(userAgent);
-        var store = new JsonFileTokenStore(tokenStore);
-        store.load();
+        networkAdapter = new OkHttpNetworkAdapter(userAgent);
+        store = new JsonFileTokenStore(tokenStore);
+        if (tokenStore.exists()) store.load();
         store.setAutoPersist(true);
-        var helper = OAuthHelper.interactive(networkAdapter, oauthCreds, store);
-        System.out.println("USERS:");
-        System.out.println(store.getUsernames());
-        var reddit = new RedditClient(networkAdapter, store.fetchLatest("OnlyTwo_jpg"), oauthCreds, store, "OnlyTwo_jpg");
-//        var helper = OAuthHelper.automatic(networkAdapter, oauthCreds, store);
+        statefulAuthHelper = OAuthHelper.interactive(networkAdapter, credentials, store);
+    }
 
-//        String authUrl = helper.getAuthorizationUrl(true, false, "read", "vote", "identity", "account", "save", "history");
+    public Optional<RedditClient> getAccount(String username) {
+        return Optional.ofNullable(clientCache.stream().filter(client -> client.me().getUsername().equalsIgnoreCase(username)).findFirst().orElseGet(() -> {
+            var tokenStoreUser = store.fetchLatest(username);
+            if (tokenStoreUser == null) return null;
+            var client = new RedditClient(networkAdapter, tokenStoreUser, credentials, store, "OnlyTwo_jpg");
+            clientCache.add(client);
+            return client;
+        }));
+    }
 
-//        WebCallback.listenFor(body -> {
-//            var reddit = helper.onUserChallenge(body);
-//
-//            var me = reddit.me().query().getAccount();
-//            if (me == null) {
-//                LOGGER.error("Me is null!");
-//                return;
-//            }
-//
-//            LOGGER.info("Hello {}!", me.getName());
-//            var jda = reddicord.getDiscordManager().getJDA();
-//            jda.getGuildById(642549950361632778L).getTextChannelById(642549950361632781L)
-//                    .sendMessage("Hello " + me.getName()).queue();
-//        });
-//
-//        var desktop = Desktop.getDesktop();
-//        desktop.browse(new URI(authUrl));
+    public CompletableFuture<Optional<RedditClient>> linkClient(Member member) {
+        var dm = member.getUser().openPrivateChannel().complete();
+        if (dm == null) {
+            LOGGER.error("DM is null for {}", member.getNickname());
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
 
+        var authUrl = statefulAuthHelper.getAuthorizationUrl(true, false, "read", "vote", "identity", "account", "save", "history");
+        dm.sendMessage(EmbedUtils.createEmbed(member, "Reddit Link", embed -> embed.setDescription("To link your Reddit account with Reddicord, please click [here](" + authUrl + ")."))).queue();
 
-        var me = reddit.me().query().getAccount();
-        System.out.println(me);
-        System.out.println(store.getUsernames());
-        var jda = reddicord.getDiscordManager().getJDA();
-        jda.getGuildById(642549950361632778L).getTextChannelById(642549950361632781L)
-                .sendMessage("Hello " + me.getName() + "\nYour karma is:\n\t" + me.getCommentKarma() + " Comment\n\t" + me.getLinkKarma() + " Post").queue();
+        try {
+            var clientFuture = CompletableFuture.supplyAsync(ThreadUtil::<Optional<RedditClient>>hang);
+            WebCallback.listenFor(body -> {
+                var reddit = statefulAuthHelper.onUserChallenge(configManager.get(REDIRECTURL) + body);
+                clientCache.add(reddit);
+                clientFuture.complete(Optional.of(reddit));
+            });
+            return clientFuture;
+        } catch (IOException e) {
+            LOGGER.error("Error opening server for " + member.getNickname(), e);
+        }
+
+        return CompletableFuture.completedFuture(Optional.empty());
     }
 
 }

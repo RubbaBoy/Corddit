@@ -23,12 +23,14 @@ public class CommandHandler extends ListenerAdapter {
         var channel = event.getChannel();
         if (author.isBot() || author.isFake()) return;
         var message = event.getMessage();
-        var base = message.getContentRaw().split("\\s+")[0];
+        var raw = message.getContentRaw();
+        var base = raw.split("\\s+")[0];
         var prefix = commandManager.getPrefix();
         if (!base.startsWith(prefix)) return;
         var strippedBase = base.substring(prefix.length());
         commandManager.getCommands().stream().filter(command -> command.commandMatches(strippedBase)).findFirst().ifPresent(command ->  {
-            command.onCommand(member, channel, message.getContentRaw());
+            command.onCommand(member, channel, raw.split("\\s+"));
+            command.onCommand(member, channel, raw);
             command.onCommand(member, channel, event);
         });
     }

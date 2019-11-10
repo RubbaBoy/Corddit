@@ -5,17 +5,13 @@ import com.uddernetworks.reddicord.discord.HelpUtility;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 
-public class HelpCommand implements Command {
+public class HelpCommand extends Command {
 
     private Reddicord reddicord;
 
     public HelpCommand(Reddicord reddicord) {
+        super("help");
         this.reddicord = reddicord;
-    }
-
-    @Override
-    public boolean commandMatches(String base) {
-        return base.equalsIgnoreCase("help");
     }
 
     @Override
