@@ -27,17 +27,11 @@ public class LinkCommand extends Command {
 
         channel.sendMessage(author.getAsMention() + " Check your DMs for a verification link").queue();
 
-        reddicord.getRedditManager().linkClient(author).thenAccept(clientOptional -> {
-            clientOptional.ifPresentOrElse(client -> {
-                var query = client.me().query();
-
-                LOGGER.info("Hello {}!", query.getName());
-                var jda = reddicord.getDiscordManager().getJDA();
-                jda.getGuildById(642549950361632778L).getTextChannelById(642549950361632781L)
-                        .sendMessage(author.getAsMention() + " verified as " + query.getName()).queue();
-            }, () -> {
-                LOGGER.info("Couldn't find user!");
-            });
-        });
+        reddicord.getRedditManager().linkClient(author).thenAccept(clientOptional ->
+                clientOptional.ifPresentOrElse(client -> {
+                    LOGGER.info("Verified {} as {}", author.getUser().getName(), client.getRedditAccount().me().getUsername());
+                }, () -> {
+                    LOGGER.info("Couldn't find user! Timeout?");
+                }));
     }
 }

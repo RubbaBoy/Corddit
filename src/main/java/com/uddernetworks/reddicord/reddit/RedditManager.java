@@ -1,9 +1,9 @@
 package com.uddernetworks.reddicord.reddit;
 
 import com.uddernetworks.reddicord.Reddicord;
-import com.uddernetworks.reddicord.ThreadUtil;
 import com.uddernetworks.reddicord.config.ConfigManager;
 import com.uddernetworks.reddicord.discord.EmbedUtils;
+import com.uddernetworks.reddicord.reddit.user.LinkedUser;
 import com.uddernetworks.reddicord.reddit.web.WebCallback;
 import net.dean.jraw.RedditClient;
 import net.dean.jraw.http.NetworkAdapter;
@@ -18,13 +18,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static com.uddernetworks.reddicord.config.Config.CLIENTID;
 import static com.uddernetworks.reddicord.config.Config.CLIENTSECRET;
@@ -49,8 +48,7 @@ public class RedditManager {
         this.configManager = reddicord.getConfigManager();
     }
 
-    // TODO: This will be refactored completely to allow for dynamic everything. This is a proof-of-concept currently
-    public void init(File tokenStore) throws URISyntaxException, IOException {
+    public void init(File tokenStore) {
         credentials = Credentials.webapp(configManager.get(CLIENTID), configManager.get(CLIENTSECRET), configManager.get(REDIRECTURL));
 
         var userAgent = new UserAgent("bot", "com.uddernetworks.reddicord", "1.0.0", "Reddicord");
@@ -66,13 +64,13 @@ public class RedditManager {
         return Optional.ofNullable(clientCache.stream().filter(client -> client.me().getUsername().equalsIgnoreCase(username)).findFirst().orElseGet(() -> {
             var tokenStoreUser = store.fetchLatest(username);
             if (tokenStoreUser == null) return null;
-            var client = new RedditClient(networkAdapter, tokenStoreUser, credentials, store, "OnlyTwo_jpg");
+            var client = new RedditClient(networkAdapter, tokenStoreUser, credentials, store, username);
             clientCache.add(client);
             return client;
         }));
     }
 
-    public CompletableFuture<Optional<RedditClient>> linkClient(Member member) {
+    public CompletableFuture<Optional<LinkedUser>> linkClient(Member member) {
         var dm = member.getUser().openPrivateChannel().complete();
         if (dm == null) {
             LOGGER.error("DM is null for {}", member.getNickname());
@@ -80,21 +78,16 @@ public class RedditManager {
         }
 
         var authUrl = statefulAuthHelper.getAuthorizationUrl(true, false, "read", "vote", "identity", "account", "save", "history");
-        dm.sendMessage(EmbedUtils.createEmbed(member, "Reddit Link", embed -> embed.setDescription("To link your Reddit account with Reddicord, please click [here](" + authUrl + ")."))).queue();
+        dm.sendMessage(EmbedUtils.createEmbed(member, "Reddit Link", embed -> embed.setDescription("To link your Reddit account with Reddicord, please click [here](" + authUrl + ").\n\nIf you don't complete this within 10 minutes, the verification will be ignored and you will need to redo the /link command."))).queue();
 
-        try {
-            var clientFuture = CompletableFuture.supplyAsync(ThreadUtil::<Optional<RedditClient>>hang);
-            WebCallback.listenFor(body -> {
-                var reddit = statefulAuthHelper.onUserChallenge(configManager.get(REDIRECTURL) + body);
-                clientCache.add(reddit);
-                clientFuture.complete(Optional.of(reddit));
-            });
-            return clientFuture;
-        } catch (IOException e) {
-            LOGGER.error("Error opening server for " + member.getNickname(), e);
-        }
-
-        return CompletableFuture.completedFuture(Optional.empty());
+        return WebCallback.listenFor().thenApply(body -> {
+            var reddit = statefulAuthHelper.onUserChallenge(configManager.get(REDIRECTURL) + body);
+            var linkedUser = new LinkedUser(member.getUser(), reddit);
+            clientCache.add(reddit);
+            reddicord.getUserManager().addUser(linkedUser);
+            dm.sendMessage("Account **/u/" + reddit.me().getUsername() + "** successfully verified.").queue();
+            return linkedUser;
+        }).orTimeout(10, TimeUnit.MINUTES).exceptionally(t -> null).thenApply(Optional::ofNullable);
     }
 
 }

@@ -5,6 +5,7 @@ import com.uddernetworks.reddicord.config.ConfigManager;
 import com.uddernetworks.reddicord.discord.command.CommandManager;
 import com.uddernetworks.reddicord.discord.command.HelpCommand;
 import com.uddernetworks.reddicord.discord.command.LinkCommand;
+import com.uddernetworks.reddicord.discord.command.ListCommand;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -42,12 +43,14 @@ public class DiscordManager extends ListenerAdapter {
 
         (this.commandManager = new CommandManager(reddicord))
                 .registerCommand(new HelpCommand(reddicord))
-                .registerCommand(new LinkCommand(reddicord));
+                .registerCommand(new LinkCommand(reddicord))
+                .registerCommand(new ListCommand(reddicord));
     }
 
     @Override
     public void onReady(@Nonnull ReadyEvent event) {
         LOGGER.info("Bot is ready!");
+        reddicord.getUserManager().load();
     }
 
     public Reddicord getReddicord() {

@@ -26,6 +26,7 @@ public abstract class Command {
 
         return this.base.equalsIgnoreCase(base);
     }
+
     void onCommand(Member author, TextChannel channel, String[] args) {}
     void onCommand(Member author, TextChannel channel, String rawMessage) {}
     void onCommand(Member author, TextChannel channel, GuildMessageReceivedEvent event) {}

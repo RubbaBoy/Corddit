@@ -7,7 +7,9 @@ public enum Config {
     TOKENSTORE("reddit.tokenPath"),
 
     TOKEN("discord.token"),
-    PREFIX("discord.prefix")
+    PREFIX("discord.prefix"),
+
+    USER_STORE("general.userStore")
     ;
 
     private String path;
