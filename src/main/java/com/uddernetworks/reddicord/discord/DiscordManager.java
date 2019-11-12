@@ -11,6 +11,7 @@ import com.uddernetworks.reddicord.discord.reaction.ReactManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
+import java.util.Optional;
 
 import static com.uddernetworks.reddicord.config.Config.TOKEN;
 
@@ -56,6 +58,10 @@ public class DiscordManager extends ListenerAdapter {
     public void onReady(@Nonnull ReadyEvent event) {
         LOGGER.info("Bot is ready!");
         reddicord.getUserManager().load();
+    }
+
+    public Optional<User> getUser(long id) {
+        return Optional.ofNullable(jda.getUserById(id));
     }
 
     public Reddicord getReddicord() {

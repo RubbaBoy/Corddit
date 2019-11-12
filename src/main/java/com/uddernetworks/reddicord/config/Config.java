@@ -9,7 +9,7 @@ public enum Config {
     TOKEN("discord.token"),
     PREFIX("discord.prefix"),
 
-    USER_STORE("general.userStore")
+    DATABASE_PATH("general.database")
     ;
 
     private String path;

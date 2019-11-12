@@ -29,10 +29,12 @@ public class ListCommand extends Command {
         var builder = new StringBuilder();
         reddicord.getUserManager().getUsers().forEach(linkedUser -> {
             var discord = linkedUser.getDiscordUser();
-            var reddit = linkedUser.getRedditAccount().me();
-            builder.append(discord.getName()).append(discord.getDiscriminator()).append(" > /u/").append(reddit.getUsername()).append("\n");
+            var username = linkedUser.getRedditName();
+            builder.append(discord.getName()).append(discord.getDiscriminator()).append(" > /u/").append(username).append("\n");
         });
 
-        channel.sendMessage(builder.toString().trim()).queue();
+        var text = builder.toString().trim();
+        if (text.isEmpty()) return;
+        channel.sendMessage(text).queue();
     }
 }

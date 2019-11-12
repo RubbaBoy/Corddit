@@ -1,8 +1,8 @@
 .gradle/
 .idea/
 build/
+database/
 *.log
 secret.conf
 *.txt
 tokens.json
-users.json

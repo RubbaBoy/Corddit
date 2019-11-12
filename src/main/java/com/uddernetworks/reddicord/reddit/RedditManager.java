@@ -12,8 +12,8 @@ import net.dean.jraw.http.UserAgent;
 import net.dean.jraw.oauth.Credentials;
 import net.dean.jraw.oauth.JsonFileTokenStore;
 import net.dean.jraw.oauth.OAuthHelper;
-import net.dean.jraw.oauth.StatefulAuthHelper;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,11 +37,11 @@ public class RedditManager {
     private final ConfigManager configManager;
 
     private final List<RedditClient> clientCache = Collections.synchronizedList(new ArrayList<>());
+    private final List<User> waitingUsers = Collections.synchronizedList(new ArrayList<>());
 
     private Credentials credentials;
     private NetworkAdapter networkAdapter;
     private JsonFileTokenStore store;
-    private StatefulAuthHelper statefulAuthHelper;
 
     public RedditManager(Reddicord reddicord) {
         this.reddicord = reddicord;
@@ -57,11 +57,10 @@ public class RedditManager {
         store = new JsonFileTokenStore(tokenStore);
         if (tokenStore.exists()) store.load();
         store.setAutoPersist(true);
-        statefulAuthHelper = OAuthHelper.interactive(networkAdapter, credentials, store);
     }
 
     public Optional<RedditClient> getAccount(String username) {
-        return Optional.ofNullable(clientCache.stream().filter(client -> client.me().getUsername().equalsIgnoreCase(username)).findFirst().orElseGet(() -> {
+        return Optional.ofNullable(clientCache.stream().filter(client -> client.getAuthManager().currentUsername().equalsIgnoreCase(username)).findFirst().orElseGet(() -> {
             var tokenStoreUser = store.fetchLatest(username);
             if (tokenStoreUser == null) return null;
             var client = new RedditClient(networkAdapter, tokenStoreUser, credentials, store, username);
@@ -70,24 +69,34 @@ public class RedditManager {
         }));
     }
 
+    public boolean isWaiting(Member member) {
+        return waitingUsers.contains(member.getUser());
+    }
+
     public CompletableFuture<Optional<LinkedUser>> linkClient(Member member) {
-        var dm = member.getUser().openPrivateChannel().complete();
+        var user = member.getUser();
+        var dm = user.openPrivateChannel().complete();
         if (dm == null) {
             LOGGER.error("DM is null for {}", member.getNickname());
             return CompletableFuture.completedFuture(Optional.empty());
         }
 
+        waitingUsers.add(user);
+        var statefulAuthHelper = OAuthHelper.interactive(networkAdapter, credentials, store);
         var authUrl = statefulAuthHelper.getAuthorizationUrl(true, false, "read", "vote", "identity", "account", "save", "history");
         dm.sendMessage(EmbedUtils.createEmbed(member, "Reddit Link", embed -> embed.setDescription("To link your Reddit account with Reddicord, please click [here](" + authUrl + ").\n\nIf you don't complete this within 10 minutes, the verification will be ignored and you will need to redo the /link command."))).queue();
 
         return WebCallback.listenFor().thenApply(body -> {
             var reddit = statefulAuthHelper.onUserChallenge(configManager.get(REDIRECTURL) + body);
-            var linkedUser = new LinkedUser(member.getUser(), reddit);
+            var linkedUser = new LinkedUser(user, reddit);
             clientCache.add(reddit);
             reddicord.getUserManager().addUser(linkedUser);
-            dm.sendMessage("Account **/u/" + reddit.me().getUsername() + "** successfully verified.").queue();
+            dm.sendMessage("Account **/u/" + linkedUser.getRedditName() + "** successfully verified.").queue();
             return linkedUser;
-        }).orTimeout(10, TimeUnit.MINUTES).exceptionally(t -> null).thenApply(Optional::ofNullable);
+        }).orTimeout(10, TimeUnit.MINUTES).exceptionally(t -> null).thenApply(linkedUser -> {
+            waitingUsers.remove(user);
+            return Optional.ofNullable(linkedUser);
+        });
     }
 
 }

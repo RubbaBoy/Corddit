@@ -7,10 +7,12 @@ public class LinkedUser {
 
     private final User discordUser;
     private final RedditClient redditAccount;
+    private final String redditName;
 
     public LinkedUser(User discordUser, RedditClient redditAccount) {
         this.discordUser = discordUser;
         this.redditAccount = redditAccount;
+        this.redditName = redditAccount.getAuthManager().currentUsername();
     }
 
     public User getDiscordUser() {
@@ -19,5 +21,9 @@ public class LinkedUser {
 
     public RedditClient getRedditAccount() {
         return redditAccount;
+    }
+
+    public String getRedditName() {
+        return redditName;
     }
 }
