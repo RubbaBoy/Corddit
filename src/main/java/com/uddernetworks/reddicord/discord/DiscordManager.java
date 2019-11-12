@@ -6,6 +6,8 @@ import com.uddernetworks.reddicord.discord.command.CommandManager;
 import com.uddernetworks.reddicord.discord.command.HelpCommand;
 import com.uddernetworks.reddicord.discord.command.LinkCommand;
 import com.uddernetworks.reddicord.discord.command.ListCommand;
+import com.uddernetworks.reddicord.discord.command.SetupCommand;
+import com.uddernetworks.reddicord.discord.reaction.ReactManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -26,6 +28,7 @@ public class DiscordManager extends ListenerAdapter {
     private final Reddicord reddicord;
     private final ConfigManager configManager;
     private CommandManager commandManager;
+    private ReactManager reactManager;
     private JDA jda;
 
     public DiscordManager(Reddicord reddicord) {
@@ -39,12 +42,14 @@ public class DiscordManager extends ListenerAdapter {
                 .setStatus(OnlineStatus.ONLINE)
                 .addEventListeners(this)
                 .addEventListeners(new EmbedUtils())
+                .addEventListeners(this.reactManager = new ReactManager(this))
                 .build();
 
         (this.commandManager = new CommandManager(reddicord))
                 .registerCommand(new HelpCommand(reddicord))
                 .registerCommand(new LinkCommand(reddicord))
-                .registerCommand(new ListCommand(reddicord));
+                .registerCommand(new ListCommand(reddicord))
+                .registerCommand(new SetupCommand(reddicord));
     }
 
     @Override
@@ -63,6 +68,10 @@ public class DiscordManager extends ListenerAdapter {
 
     public CommandManager getCommandManager() {
         return commandManager;
+    }
+
+    public ReactManager getReactManager() {
+        return reactManager;
     }
 
     public JDA getJDA() {
