@@ -35,6 +35,7 @@ public class RedditManager {
 
     private final Reddicord reddicord;
     private final ConfigManager configManager;
+    private final WebCallback webCallback;
 
     private final List<RedditClient> clientCache = Collections.synchronizedList(new ArrayList<>());
     private final List<User> waitingUsers = Collections.synchronizedList(new ArrayList<>());
@@ -43,9 +44,10 @@ public class RedditManager {
     private NetworkAdapter networkAdapter;
     private JsonFileTokenStore store;
 
-    public RedditManager(Reddicord reddicord, ConfigManager configManager) {
+    public RedditManager(Reddicord reddicord, ConfigManager configManager, WebCallback webCallback) {
         this.reddicord = reddicord;
         this.configManager = configManager;
+        this.webCallback = webCallback;
     }
 
     public void init(File tokenStore) {
@@ -95,28 +97,30 @@ public class RedditManager {
 
     public CompletableFuture<Optional<LinkedUser>> linkClient(Member member) {
         var user = member.getUser();
-        var dm = user.openPrivateChannel().complete();
-        if (dm == null) {
-            LOGGER.error("DM is null for {}", member.getNickname());
-            return CompletableFuture.completedFuture(Optional.empty());
-        }
+        var completableFuture = new CompletableFuture<Optional<LinkedUser>>();
+        user.openPrivateChannel().queue(dm -> {
+            waitingUsers.add(user);
+            var statefulAuthHelper = OAuthHelper.interactive(networkAdapter, credentials, store);
+            var authUrl = statefulAuthHelper.getAuthorizationUrl(true, false, "read", "vote", "identity", "account", "save", "history");
+            var query = WebCallback.getQuery(authUrl);
+            var state = query.get("state");
 
-        waitingUsers.add(user);
-        var statefulAuthHelper = OAuthHelper.interactive(networkAdapter, credentials, store);
-        var authUrl = statefulAuthHelper.getAuthorizationUrl(true, false, "read", "vote", "identity", "account", "save", "history");
-        dm.sendMessage(EmbedUtils.createEmbed(member, "Reddit Link", embed -> embed.setDescription("To link your Reddit account with Reddicord, please click [here](" + authUrl + ").\n\nIf you don't complete this within 10 minutes, the verification will be ignored and you will need to redo the /link command."))).queue();
+            dm.sendMessage(EmbedUtils.createEmbed(member, "Reddit Link", embed -> embed.setDescription("To link your Reddit account with Reddicord, please click [here](" + authUrl + ").\n\nIf you don't complete this within 10 minutes, the verification will be ignored and you will need to redo the /link command."))).queue();
 
-        return WebCallback.listenFor().thenApply(body -> {
-            var reddit = statefulAuthHelper.onUserChallenge(configManager.get(REDIRECTURL) + body);
-            var linkedUser = new LinkedUser(user, reddit);
-            clientCache.add(reddit);
-            reddicord.getUserManager().addUser(linkedUser);
-            dm.sendMessage("Account **/u/" + linkedUser.getRedditName() + "** successfully verified.").queue();
-            return linkedUser;
-        }).orTimeout(10, TimeUnit.MINUTES).exceptionally(t -> null).thenApply(linkedUser -> {
-            waitingUsers.remove(user);
-            return Optional.ofNullable(linkedUser);
-        });
+            webCallback.listenForState(state).thenApply(body -> {
+                var reddit = statefulAuthHelper.onUserChallenge(configManager.get(REDIRECTURL) + body);
+                var linkedUser = new LinkedUser(user, reddit);
+                clientCache.add(reddit);
+                reddicord.getUserManager().addUser(linkedUser);
+                dm.sendMessage("Account **/u/" + linkedUser.getRedditName() + "** successfully verified.").queue();
+                return linkedUser;
+            }).orTimeout(10, TimeUnit.MINUTES).exceptionally(t -> null).thenAccept(linkedUser -> {
+                webCallback.clearStateListen(state);
+                waitingUsers.remove(user);
+                completableFuture.complete(Optional.ofNullable(linkedUser));
+            });
+        }, completableFuture::completeExceptionally);
+        return completableFuture;
     }
 
 }

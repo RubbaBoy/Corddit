@@ -49,6 +49,9 @@ public class LinkCommand extends Command {
                     LOGGER.info("Verified {} as {}", author.getUser().getName(), client.getRedditName());
                 }, () -> {
                     LOGGER.info("Couldn't find user! Timeout?");
-                }));
+                })).exceptionally(t -> {
+            channel.sendMessage("An error occurred while opening the DM, are your DMs closed?").queue();
+            return null;
+        });
     }
 }

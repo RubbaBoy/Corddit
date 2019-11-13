@@ -54,8 +54,6 @@ public class DiscordManager extends ListenerAdapter {
 
     @Override
     public void onReady(@Nonnull ReadyEvent event) {
-        LOGGER.info("Bot is ready!");
-
         (this.commandManager = new CommandManager(reddicord))
                 .registerCommand(new HelpCommand(reddicord))
                 .registerCommand(new LinkCommand(reddicord))

@@ -3,30 +3,85 @@ package com.uddernetworks.reddicord.user.web;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import com.uddernetworks.reddicord.Reddicord;
+import com.uddernetworks.reddicord.config.ConfigManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import static com.uddernetworks.reddicord.config.Config.REDIRECTURL;
 
 public class WebCallback {
 
+    private final Reddicord reddicord;
+    private final ConfigManager configManager;
     private static final Logger LOGGER = LoggerFactory.getLogger(WebCallback.class);
 
-    public static CompletableFuture<String> listenFor() {
-        var future = new CompletableFuture<String>();
+    private String base;
+    private Map<String, Consumer<String>> callbackMap = new ConcurrentHashMap<>();
+
+    public WebCallback(Reddicord reddicord, ConfigManager configManager) {
+        this.reddicord = reddicord;
+        this.configManager = configManager;
+
+        base = configManager.get(REDIRECTURL);
+        base = base.substring(0, base.length() - "/reddicord".length());
+    }
+
+    public void start() {
         try {
             var server = HttpServer.create(new InetSocketAddress(8000), 0);
-            server.createContext("/reddicord", new MyHandler(server, future::complete));
+            server.createContext("/reddicord", new MyHandler(server, requested -> {
+                var query = getQuery(base, requested);
+                if (!query.containsKey("state")) return;
+                var state = query.get("state");
+                if (!callbackMap.containsKey(state)) return;
+                callbackMap.get(state).accept(requested);
+            }));
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {
-            LOGGER.error("Error during server creation", e);
-            future.completeExceptionally(e);
+            LOGGER.error("Error during server creation. Account linking will NOT work.", e);
         }
-        return future;
+    }
+
+    public CompletableFuture<String> listenForState(String state) {
+        var completableFuture = new CompletableFuture<String>();
+        callbackMap.put(state, completableFuture::complete);
+        return completableFuture;
+    }
+
+    public void listenForState(String state, Consumer<String> callback) {
+        callbackMap.put(state, callback);
+    }
+
+    public void clearStateListen(String state) {
+        callbackMap.remove(state);
+    }
+
+    public static Map<String, String> getQuery(String requested) {
+        return getQuery("", requested);
+    }
+
+    public static Map<String, String> getQuery(String base, String requested) {
+        try {
+            var url = new URL(base + requested);
+            return Arrays.stream(url.getQuery().split("&")).map(kv -> kv.split("=", 2)).collect(Collectors.toMap(arr -> arr[0], arr -> arr[1]));
+        } catch (MalformedURLException e) {
+            LOGGER.error("Invalid URL", e);
+            return Collections.emptyMap();
+        }
     }
 
     static class MyHandler implements HttpHandler {
@@ -51,7 +106,6 @@ public class WebCallback {
                 os.close();
 
                 callback.accept(exchange.getRequestURI().toString());
-                httpServer.stop(1000);
             } catch (IOException e) {
                 LOGGER.error("Error during response", e);
             }
