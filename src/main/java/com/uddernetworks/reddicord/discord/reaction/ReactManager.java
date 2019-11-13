@@ -36,8 +36,19 @@ public class ReactManager extends ListenerAdapter {
     }
 
     public ReactionListener createReactionListener(Message message, String codepoints, Consumer<Member> callback, boolean selfReact) {
+        return createReactionListener(message, codepoints, callback, selfReact, false);
+    }
+
+    public ReactionListener createReactionListener(Message message, String codepoints, Consumer<Member> callback, boolean selfReact, boolean keepSingle) {
         if (selfReact) message.addReaction(codepoints).queue();
-        var listener = new ReactionListener(message, codepoints, callback);
+        Consumer<Member> override = callback;
+        if (keepSingle) {
+            override = member -> {
+                message.removeReaction(codepoints, member.getUser()).queue();
+                callback.accept(member);
+            };
+        }
+        var listener = new ReactionListener(message, codepoints, override);
         listeners.add(listener);
         return listener;
     }

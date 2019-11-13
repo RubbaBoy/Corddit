@@ -7,6 +7,7 @@ import com.uddernetworks.reddicord.discord.command.HelpCommand;
 import com.uddernetworks.reddicord.discord.command.LinkCommand;
 import com.uddernetworks.reddicord.discord.command.ListCommand;
 import com.uddernetworks.reddicord.discord.command.SetupCommand;
+import com.uddernetworks.reddicord.discord.command.SubredditCommand;
 import com.uddernetworks.reddicord.discord.reaction.ReactManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static com.uddernetworks.reddicord.config.Config.TOKEN;
 
@@ -29,16 +31,17 @@ public class DiscordManager extends ListenerAdapter {
 
     private final Reddicord reddicord;
     private final ConfigManager configManager;
+    private final CompletableFuture<Void> initFuture = new CompletableFuture<>();
     private CommandManager commandManager;
     private ReactManager reactManager;
     private JDA jda;
 
-    public DiscordManager(Reddicord reddicord) {
+    public DiscordManager(Reddicord reddicord, ConfigManager configManager) {
         this.reddicord = reddicord;
-        this.configManager = reddicord.getConfigManager();
+        this.configManager = configManager;
     }
 
-    public void init() throws LoginException {
+    public CompletableFuture<Void> init() throws LoginException {
         this.jda = new JDABuilder()
                 .setToken(configManager.get(TOKEN))
                 .setStatus(OnlineStatus.ONLINE)
@@ -46,18 +49,21 @@ public class DiscordManager extends ListenerAdapter {
                 .addEventListeners(new EmbedUtils())
                 .addEventListeners(this.reactManager = new ReactManager(this))
                 .build();
-
-        (this.commandManager = new CommandManager(reddicord))
-                .registerCommand(new HelpCommand(reddicord))
-                .registerCommand(new LinkCommand(reddicord))
-                .registerCommand(new ListCommand(reddicord))
-                .registerCommand(new SetupCommand(reddicord));
+        return initFuture;
     }
 
     @Override
     public void onReady(@Nonnull ReadyEvent event) {
         LOGGER.info("Bot is ready!");
-        reddicord.getUserManager().load();
+
+        (this.commandManager = new CommandManager(reddicord))
+                .registerCommand(new HelpCommand(reddicord))
+                .registerCommand(new LinkCommand(reddicord))
+                .registerCommand(new ListCommand(reddicord))
+                .registerCommand(new SetupCommand(reddicord))
+                .registerCommand(new SubredditCommand(reddicord));
+
+        initFuture.complete(null);
     }
 
     public Optional<User> getUser(long id) {

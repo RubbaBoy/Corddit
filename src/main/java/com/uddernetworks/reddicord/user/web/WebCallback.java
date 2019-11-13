@@ -1,4 +1,4 @@
-package com.uddernetworks.reddicord.reddit.web;
+package com.uddernetworks.reddicord.user.web;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;

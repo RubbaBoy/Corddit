@@ -3,8 +3,8 @@ package com.uddernetworks.reddicord.reddit;
 import com.uddernetworks.reddicord.Reddicord;
 import com.uddernetworks.reddicord.config.ConfigManager;
 import com.uddernetworks.reddicord.discord.EmbedUtils;
-import com.uddernetworks.reddicord.reddit.user.LinkedUser;
-import com.uddernetworks.reddicord.reddit.web.WebCallback;
+import com.uddernetworks.reddicord.user.LinkedUser;
+import com.uddernetworks.reddicord.user.web.WebCallback;
 import net.dean.jraw.RedditClient;
 import net.dean.jraw.http.NetworkAdapter;
 import net.dean.jraw.http.OkHttpNetworkAdapter;
@@ -43,9 +43,9 @@ public class RedditManager {
     private NetworkAdapter networkAdapter;
     private JsonFileTokenStore store;
 
-    public RedditManager(Reddicord reddicord) {
+    public RedditManager(Reddicord reddicord, ConfigManager configManager) {
         this.reddicord = reddicord;
-        this.configManager = reddicord.getConfigManager();
+        this.configManager = configManager;
     }
 
     public void init(File tokenStore) {
@@ -55,18 +55,38 @@ public class RedditManager {
 
         networkAdapter = new OkHttpNetworkAdapter(userAgent);
         store = new JsonFileTokenStore(tokenStore);
-        if (tokenStore.exists()) store.load();
+        if (tokenStore.exists()) {
+            LOGGER.info("Exists! loading");
+            store.load();
+        } else {
+            LOGGER.info("BAD!!!!");
+        }
         store.setAutoPersist(true);
+
+        LOGGER.info("usernames: {}", store.getUsernames());
+        store.getUsernames().forEach(this::createAndAddAccount);
+    }
+
+    private Optional<RedditClient> createAndAddAccount(String username) {
+        var tokenStoreUser = store.fetchLatest(username);
+
+        var inspected = store.inspect(username);
+        LOGGER.info("INspected: {}", inspected);
+        LOGGER.info("Token store for {} is {}", username, tokenStoreUser);
+
+//        var statefulAuthHelper = OAuthHelper.interactive(networkAdapter, credentials, store);
+//        LOGGER.info(statefulAuthHelper.getAuthStatus().name());
+
+        if (tokenStoreUser == null) return Optional.empty();
+        var client = new RedditClient(networkAdapter, tokenStoreUser, credentials, store, username);
+        client.setAutoRenew(true);
+        clientCache.add(client);
+        return Optional.of(client);
     }
 
     public Optional<RedditClient> getAccount(String username) {
-        return Optional.ofNullable(clientCache.stream().filter(client -> client.getAuthManager().currentUsername().equalsIgnoreCase(username)).findFirst().orElseGet(() -> {
-            var tokenStoreUser = store.fetchLatest(username);
-            if (tokenStoreUser == null) return null;
-            var client = new RedditClient(networkAdapter, tokenStoreUser, credentials, store, username);
-            clientCache.add(client);
-            return client;
-        }));
+        return Optional.ofNullable(clientCache.stream().filter(client -> client.getAuthManager().currentUsername().equalsIgnoreCase(username)).findFirst().orElseGet(() ->
+                createAndAddAccount(username).orElse(null)));
     }
 
     public boolean isWaiting(Member member) {

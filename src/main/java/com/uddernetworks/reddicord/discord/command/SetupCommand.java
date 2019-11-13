@@ -18,7 +18,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-// TODO: Temporary command
 public class SetupCommand extends Command {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SetupCommand.class);
@@ -51,7 +50,6 @@ public class SetupCommand extends Command {
             return;
         }
 
-
         AtomicInteger seconds = new AtomicInteger(5);
         var message = channel.sendMessage(createTimeout(author, seconds.get())).complete();
 
@@ -81,11 +79,11 @@ public class SetupCommand extends Command {
     }
 
     private MessageEmbed createTimeout(Member author, int time) {
-        return createTimeout(author, "If you really want to run this command, react with the :qhite_check_mark: within the next %TIME% seconds.", time);
+        return createTimeout(author, "If you really want to run this command, react with the :white_check_mark: within the next %TIME% seconds.", time);
     }
 
     private MessageEmbed createTimeout(Member author, String text, int time) {
-        return EmbedUtils.createEmbed(author, ":warning: This command will add several channels and roles. :warning:", embedBuilder ->
+        return EmbedUtils.createEmbed(author, ":warning: This command will add a category. Ensure you do not modify these generated channels or their messages in them. The category may be renamed. :warning:", embedBuilder ->
                 embedBuilder.setDescription(text.replace("%TIME%", String.valueOf(time))));
     }
 }

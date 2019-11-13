@@ -1,4 +1,4 @@
-package com.uddernetworks.reddicord.reddit.user;
+package com.uddernetworks.reddicord.user;
 
 import net.dean.jraw.RedditClient;
 import net.dv8tion.jda.api.entities.User;

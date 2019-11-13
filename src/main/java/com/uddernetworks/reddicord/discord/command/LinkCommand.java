@@ -3,7 +3,7 @@ package com.uddernetworks.reddicord.discord.command;
 import com.uddernetworks.reddicord.Reddicord;
 import com.uddernetworks.reddicord.discord.EmbedUtils;
 import com.uddernetworks.reddicord.reddit.RedditManager;
-import com.uddernetworks.reddicord.reddit.user.UserManager;
+import com.uddernetworks.reddicord.user.UserManager;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.slf4j.Logger;
@@ -26,7 +26,7 @@ public class LinkCommand extends Command {
 
     @Override
     public void onCommand(Member author, TextChannel channel, String[] args) {
-        if (args.length != 1) {
+        if (args.length != 0) {
             EmbedUtils.error(channel, author, "Usage: /link");
             return;
         }

@@ -21,20 +21,28 @@ public class ListCommand extends Command {
 
     @Override
     public void onCommand(Member author, TextChannel channel, String[] args) {
-        if (args.length != 1) {
+        if (args.length != 0) {
             EmbedUtils.error(channel, author, "Usage: /list");
             return;
         }
 
-        var builder = new StringBuilder();
+        var builder = new StringBuilder("**Users**\n");
         reddicord.getUserManager().getUsers().forEach(linkedUser -> {
             var discord = linkedUser.getDiscordUser();
             var username = linkedUser.getRedditName();
-            builder.append(discord.getName()).append(discord.getDiscriminator()).append(" > /u/").append(username).append("\n");
+            builder.append(discord.getName()).append(discord.getDiscriminator()).append(" **>** /u/").append(username).append("\n");
+        });
+
+        builder.append("\n**Subreddits**\n");
+        reddicord.getSubredditManager().getSubreddits().forEach((guild, subredditLinks) -> {
+            builder.append("__").append(guild.getName()).append("__\n");
+            subredditLinks.forEach(subredditLink -> {
+                builder.append("\t").append(subredditLink.getTextChannel().getAsMention()).append(" **>** ").append(subredditLink.getSubreddit()).append("\n");
+            });
         });
 
         var text = builder.toString().trim();
-        if (text.isEmpty()) return;
+        if (text.isEmpty()) text = "No data";
         channel.sendMessage(text).queue();
     }
 }
