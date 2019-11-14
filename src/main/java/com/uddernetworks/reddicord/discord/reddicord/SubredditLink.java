@@ -1,5 +1,6 @@
 package com.uddernetworks.reddicord.discord.reddicord;
 
+import net.dean.jraw.models.Subreddit;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.TextChannel;
 
@@ -7,9 +8,9 @@ public class SubredditLink {
 
     private final Guild guild;
     private final TextChannel textChannel;
-    private final String subreddit;
+    private final Subreddit subreddit;
 
-    public SubredditLink(TextChannel textChannel, String subreddit) {
+    public SubredditLink(TextChannel textChannel, Subreddit subreddit) {
         this.guild = textChannel.getGuild();
         this.textChannel = textChannel;
         this.subreddit = subreddit;
@@ -23,7 +24,11 @@ public class SubredditLink {
         return textChannel;
     }
 
-    public String getSubreddit() {
+    public String getName() {
+        return subreddit.getName();
+    }
+
+    public Subreddit getSubreddit() {
         return subreddit;
     }
 }

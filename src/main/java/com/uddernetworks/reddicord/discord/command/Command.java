@@ -12,13 +12,13 @@ public abstract class Command {
 
     private String base;
 
-    Command() {}
+    public Command() {}
 
     Command(String base) {
         this.base = base;
     }
 
-    boolean commandMatches(String base) {
+    public boolean commandMatches(String base) {
         if (this.base == null) {
             LOGGER.error("Error with implementation of Command: #commandMatches must be implemented if no command base is set in the constructor.");
             return false;
@@ -27,7 +27,7 @@ public abstract class Command {
         return this.base.equalsIgnoreCase(base);
     }
 
-    void onCommand(Member author, TextChannel channel, String[] args) {}
-    void onCommand(Member author, TextChannel channel, String rawMessage) {}
-    void onCommand(Member author, TextChannel channel, GuildMessageReceivedEvent event) {}
+    public void onCommand(Member author, TextChannel channel, String[] args) {}
+    public void onCommand(Member author, TextChannel channel, String rawMessage) {}
+    public void onCommand(Member author, TextChannel channel, GuildMessageReceivedEvent event) {}
 }

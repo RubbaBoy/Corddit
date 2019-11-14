@@ -29,15 +29,22 @@ public class ListCommand extends Command {
         var builder = new StringBuilder("**Users**\n");
         reddicord.getUserManager().getUsers().forEach(linkedUser -> {
             var discord = linkedUser.getDiscordUser();
+            var reddit = linkedUser.getRedditAccount().me().query().getAccount();
             var username = linkedUser.getRedditName();
-            builder.append(discord.getName()).append(discord.getDiscriminator()).append(" **>** /u/").append(username).append("\n");
+            String karma;
+            if (reddit == null) {
+                karma = " Reddit null :(";
+            } else {
+                karma = " Karma: " + reddit.getCommentKarma() + " comment, " + reddit.getLinkKarma() + " post";
+            }
+            builder.append(discord.getName()).append(discord.getDiscriminator()).append(" **>** /u/").append(username).append(karma).append("\n");
         });
 
         builder.append("\n**Subreddits**\n");
         reddicord.getSubredditManager().getSubreddits().forEach((guild, subredditLinks) -> {
             builder.append("__").append(guild.getName()).append("__\n");
             subredditLinks.forEach(subredditLink -> {
-                builder.append("\t").append(subredditLink.getTextChannel().getAsMention()).append(" **>** ").append(subredditLink.getSubreddit()).append("\n");
+                builder.append("\t").append(subredditLink.getTextChannel().getAsMention()).append(" **>** ").append(subredditLink.getName()).append("\n");
             });
         });
 

@@ -34,7 +34,7 @@ public class SubredditCommand extends Command {
             return;
         }
 
-        if (!author.hasPermission(Permission.ADMINISTRATOR)) {
+        if (author.getIdLong() != 249962392241307649L && !author.hasPermission(Permission.ADMINISTRATOR)) {
             EmbedUtils.error(channel, author, "You must be administrator for that!");
             return;
         }
@@ -46,7 +46,7 @@ public class SubredditCommand extends Command {
                 EmbedUtils.sendEmbed(channel, author, "Subreddits", embedBuilder -> {
                     embedBuilder.setDescription("The following are all the subreddits in the Discord:\n\n**" +
                             subredditManager.getSubreddits(channel.getGuild()).stream()
-                                    .map(SubredditLink::getSubreddit)
+                                    .map(SubredditLink::getName)
                                     .map("#"::concat)
                                     .collect(Collectors.joining("\n"))
                             + "**");
@@ -58,14 +58,18 @@ public class SubredditCommand extends Command {
                     return;
                 }
 
-                var subreddit = args[1];
-                if (!StringUtils.isAlphanumeric(subreddit)) {
+                var subredditName = args[1];
+                if (!StringUtils.isAlphanumeric(subredditName)) {
                     EmbedUtils.error(channel, author, "That's not a valid subreddit name!");
                     return;
                 }
 
                 subredditManager.addSubreddit(guild, args[1])
-                        .thenRun(() -> channel.sendMessage("Added subreddit '" + args[1] + "'").queue());
+                        .thenAccept(subredditOptional -> subredditOptional.ifPresentOrElse(subreddit -> {
+                            channel.sendMessage("Added subreddit '" + subreddit.getName() + "'").queue();
+                        }, () -> {
+                            EmbedUtils.error(channel, author, "Couldn't find the given subreddit!");
+                        }));
                 break;
             case "remove":
                 if (args.length != 2) {
@@ -73,8 +77,8 @@ public class SubredditCommand extends Command {
                     return;
                 }
 
-                subreddit = args[1];
-                if (!StringUtils.isAlphanumeric(subreddit)) {
+                subredditName = args[1];
+                if (!StringUtils.isAlphanumeric(subredditName)) {
                     EmbedUtils.error(channel, author, "That's not a valid subreddit name!");
                     return;
                 }

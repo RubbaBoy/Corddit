@@ -8,15 +8,9 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static net.dv8tion.jda.api.Permission.MANAGE_CHANNEL;
-import static net.dv8tion.jda.api.Permission.MANAGE_PERMISSIONS;
-import static net.dv8tion.jda.api.Permission.MESSAGE_WRITE;
 
 public class DiscordStateManager {
 
@@ -49,7 +43,8 @@ public class DiscordStateManager {
     public CompletableFuture<Category> createCategory(Guild guild) {
         var everyone = guild.getPublicRole();
         var subredditsCategory = guild.createCategory("subreddits")
-                .addPermissionOverride(everyone, Collections.emptyList(), Arrays.asList(MANAGE_CHANNEL, MESSAGE_WRITE, MANAGE_PERMISSIONS)).complete();
+//                .addPermissionOverride(everyone, Collections.emptyList(), Arrays.asList(MANAGE_CHANNEL, MESSAGE_WRITE, MANAGE_PERMISSIONS)).complete();
+                .complete();
         return databaseManager.addGuild(guild, subredditsCategory).thenApply($ -> subredditsCategory);
     }
 

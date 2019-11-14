@@ -8,6 +8,7 @@ import com.uddernetworks.reddicord.discord.command.LinkCommand;
 import com.uddernetworks.reddicord.discord.command.ListCommand;
 import com.uddernetworks.reddicord.discord.command.SetupCommand;
 import com.uddernetworks.reddicord.discord.command.SubredditCommand;
+import com.uddernetworks.reddicord.discord.command.evaluate.EvaluateCommand;
 import com.uddernetworks.reddicord.discord.reaction.ReactManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -59,7 +60,8 @@ public class DiscordManager extends ListenerAdapter {
                 .registerCommand(new LinkCommand(reddicord))
                 .registerCommand(new ListCommand(reddicord))
                 .registerCommand(new SetupCommand(reddicord))
-                .registerCommand(new SubredditCommand(reddicord));
+                .registerCommand(new SubredditCommand(reddicord))
+                .registerCommand(new EvaluateCommand(reddicord));
 
         initFuture.complete(null);
     }

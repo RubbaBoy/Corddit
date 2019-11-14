@@ -9,6 +9,7 @@ import net.dean.jraw.RedditClient;
 import net.dean.jraw.http.NetworkAdapter;
 import net.dean.jraw.http.OkHttpNetworkAdapter;
 import net.dean.jraw.http.UserAgent;
+import net.dean.jraw.models.OAuthData;
 import net.dean.jraw.oauth.Credentials;
 import net.dean.jraw.oauth.JsonFileTokenStore;
 import net.dean.jraw.oauth.OAuthHelper;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -31,6 +33,7 @@ import static com.uddernetworks.reddicord.config.Config.REDIRECTURL;
 
 public class RedditManager {
 
+    public static final UserAgent USER_AGENT = new UserAgent("bot", "com.uddernetworks.reddicord", "1.0.0", "Reddicord");
     private static final Logger LOGGER = LoggerFactory.getLogger(RedditManager.class);
 
     private final Reddicord reddicord;
@@ -53,19 +56,12 @@ public class RedditManager {
     public void init(File tokenStore) {
         credentials = Credentials.webapp(configManager.get(CLIENTID), configManager.get(CLIENTSECRET), configManager.get(REDIRECTURL));
 
-        var userAgent = new UserAgent("bot", "com.uddernetworks.reddicord", "1.0.0", "Reddicord");
-
-        networkAdapter = new OkHttpNetworkAdapter(userAgent);
+        networkAdapter = new OkHttpNetworkAdapter(USER_AGENT);
         store = new JsonFileTokenStore(tokenStore);
-        if (tokenStore.exists()) {
-            LOGGER.info("Exists! loading");
-            store.load();
-        } else {
-            LOGGER.info("BAD!!!!");
-        }
+        if (tokenStore.exists()) store.load();
         store.setAutoPersist(true);
 
-        LOGGER.info("usernames: {}", store.getUsernames());
+        LOGGER.info("Usernames: {}", store.getUsernames());
         store.getUsernames().forEach(this::createAndAddAccount);
     }
 
@@ -73,14 +69,21 @@ public class RedditManager {
         var tokenStoreUser = store.fetchLatest(username);
 
         var inspected = store.inspect(username);
-        LOGGER.info("INspected: {}", inspected);
+        LOGGER.info("Inspected: {}", inspected);
         LOGGER.info("Token store for {} is {}", username, tokenStoreUser);
 
-//        var statefulAuthHelper = OAuthHelper.interactive(networkAdapter, credentials, store);
-//        LOGGER.info(statefulAuthHelper.getAuthStatus().name());
+        RedditClient client;
+        if (tokenStoreUser == null) {
+            var refresh = store.fetchRefreshToken(username);
+            LOGGER.info("Couldn't find tokenStoreUSer, it's probably expired. However refresh = {}", refresh);
 
-        if (tokenStoreUser == null) return Optional.empty();
-        var client = new RedditClient(networkAdapter, tokenStoreUser, credentials, store, username);
+            // See AccountHelper.kt#101
+            var emptyData = OAuthData.create("", Collections.emptyList(), refresh, new Date(0L));
+            client = new RedditClient(networkAdapter, emptyData, credentials, store, username);
+        } else {
+            client = new RedditClient(networkAdapter, tokenStoreUser, credentials, store, username);
+        }
+
         client.setAutoRenew(true);
         clientCache.add(client);
         return Optional.of(client);
@@ -123,4 +126,11 @@ public class RedditManager {
         return completableFuture;
     }
 
+    public Credentials getCredentials() {
+        return credentials;
+    }
+
+    public NetworkAdapter getNetworkAdapter() {
+        return networkAdapter;
+    }
 }

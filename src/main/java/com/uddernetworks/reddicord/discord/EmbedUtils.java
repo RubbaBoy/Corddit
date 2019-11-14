@@ -1,5 +1,7 @@
 package com.uddernetworks.reddicord.discord;
 
+import com.uddernetworks.reddicord.discord.reddicord.SubredditLink;
+import net.dean.jraw.models.Subreddit;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
@@ -46,16 +48,42 @@ public class EmbedUtils extends ListenerAdapter {
         return message;
     }
 
+    public static MessageEmbed createEmbed(String title, Consumer<EmbedBuilder> embedBuilderConsumer) {
+        return createEmbed(null, title, embedBuilderConsumer);
+    }
+
     public static MessageEmbed createEmbed(Member author, String title, Consumer<EmbedBuilder> embedBuilderConsumer) {
         EmbedBuilder eb = new EmbedBuilder();
 
         eb.setTitle(title, null);
         eb.setColor(new Color(0x424BE9));
 
-        eb.setFooter("Requested by " + author.getEffectiveName(), author.getUser().getAvatarUrl());
+        if (author != null) {
+            eb.setFooter("Requested by " + author.getEffectiveName(), author.getUser().getAvatarUrl());
+        }
 
         embedBuilderConsumer.accept(eb);
         return eb.build();
+    }
+
+    public static void setColor(EmbedBuilder embed, SubredditLink subredditLink) {
+        setColor(embed, subredditLink.getSubreddit());
+    }
+
+    public static void setColor(EmbedBuilder embed, Subreddit subreddit) {
+        if (subreddit == null || subreddit.getKeyColor() == null) return;
+        embed.setColor(hex2Rgb(subreddit.getKeyColor().substring(1)));
+    }
+
+    /**
+     * Thanks SO <3
+     * https://stackoverflow.com/a/4129692/3929546
+     */
+    public static Color hex2Rgb(String colorStr) {
+        return new Color(
+                Integer.valueOf(colorStr.substring(1, 3), 16),
+                Integer.valueOf(colorStr.substring(3, 5), 16),
+                Integer.valueOf(colorStr.substring(5, 7), 16));
     }
 
     @Override

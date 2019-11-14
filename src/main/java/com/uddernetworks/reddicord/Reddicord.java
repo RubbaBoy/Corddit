@@ -75,6 +75,8 @@ public class Reddicord {
         LOGGER.info("Starting web callback server...");
         webCallback.start();
 
+//        discordManager.getJDA().getCategoryById(644271080256569364L).delete().complete();
+
         LOGGER.info("Everything is ready!");
     }
 

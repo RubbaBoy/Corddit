@@ -175,7 +175,7 @@ public class DatabaseManager {
         return mapResultOf(getAllSubreddits, genericMap -> {
             var channel = discordManager.getJDA().getTextChannelById(genericMap.<Long>get("channel"));
             if (channel == null) return Optional.empty();
-            return Optional.of(new SubredditLink(channel, genericMap.get("subreddit")));
+            return reddicord.getSubredditManager().getSubredditDataFetcher().getSubreddit(genericMap.get("subreddit")).join().map(subreddit -> new SubredditLink(channel, subreddit));
         });
     }
 
