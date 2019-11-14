@@ -72,7 +72,7 @@ public class EmbedUtils extends ListenerAdapter {
 
     public static void setColor(EmbedBuilder embed, Subreddit subreddit) {
         if (subreddit == null || subreddit.getKeyColor() == null) return;
-        embed.setColor(hex2Rgb(subreddit.getKeyColor().substring(1)));
+        embed.setColor(hex2Rgb(subreddit.getKeyColor()));
     }
 
     /**
@@ -80,6 +80,7 @@ public class EmbedUtils extends ListenerAdapter {
      * https://stackoverflow.com/a/4129692/3929546
      */
     public static Color hex2Rgb(String colorStr) {
+        if (colorStr == null) return Color.BLACK;
         return new Color(
                 Integer.valueOf(colorStr.substring(1, 3), 16),
                 Integer.valueOf(colorStr.substring(3, 5), 16),

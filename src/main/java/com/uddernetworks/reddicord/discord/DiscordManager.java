@@ -6,6 +6,8 @@ import com.uddernetworks.reddicord.discord.command.CommandManager;
 import com.uddernetworks.reddicord.discord.command.HelpCommand;
 import com.uddernetworks.reddicord.discord.command.LinkCommand;
 import com.uddernetworks.reddicord.discord.command.ListCommand;
+import com.uddernetworks.reddicord.discord.command.NextCommand;
+import com.uddernetworks.reddicord.discord.command.ResetCommand;
 import com.uddernetworks.reddicord.discord.command.SetupCommand;
 import com.uddernetworks.reddicord.discord.command.SubredditCommand;
 import com.uddernetworks.reddicord.discord.command.evaluate.EvaluateCommand;
@@ -61,6 +63,8 @@ public class DiscordManager extends ListenerAdapter {
                 .registerCommand(new ListCommand(reddicord))
                 .registerCommand(new SetupCommand(reddicord))
                 .registerCommand(new SubredditCommand(reddicord))
+                .registerCommand(new NextCommand(reddicord))
+                .registerCommand(new ResetCommand(reddicord))
                 .registerCommand(new EvaluateCommand(reddicord));
 
         initFuture.complete(null);

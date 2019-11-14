@@ -41,6 +41,7 @@ public class DiscordStateManager {
     }
 
     public CompletableFuture<Category> createCategory(Guild guild) {
+        LOGGER.info("Creating category!");
         var everyone = guild.getPublicRole();
         var subredditsCategory = guild.createCategory("subreddits")
 //                .addPermissionOverride(everyone, Collections.emptyList(), Arrays.asList(MANAGE_CHANNEL, MESSAGE_WRITE, MANAGE_PERMISSIONS)).complete();
@@ -49,13 +50,13 @@ public class DiscordStateManager {
     }
 
     public CompletableFuture<Category> getOrCreateCategory(Guild guild) {
-        return databaseManager.getGuildCategory(guild).thenApplyAsync(optionalCategory ->
+        LOGGER.info("Getting or creating category");
+        return databaseManager.getGuildCategory(guild).thenApply(optionalCategory ->
                 optionalCategory.orElseGet(() -> createCategory(guild).join()));
     }
 
     public CompletableFuture<TextChannel> addSubredditChannel(Guild guild, String subreddit) {
-        return CompletableFuture.supplyAsync(() ->
-                getOrCreateCategory(guild).thenApplyAsync(category ->
-                    category.createTextChannel(subreddit).setTopic("Reddicord-managed channel for the r/" + subreddit + " subreddit").complete()).join());
+        return getOrCreateCategory(guild).thenApply(category ->
+                    category.createTextChannel(subreddit).setTopic("Reddicord-managed channel for the r/" + subreddit + " subreddit").complete());
     }
 }

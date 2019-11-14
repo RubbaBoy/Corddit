@@ -6,6 +6,7 @@ import com.uddernetworks.reddicord.discord.DiscordStateManager;
 import com.uddernetworks.reddicord.discord.EmbedUtils;
 import net.dean.jraw.models.Subreddit;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +42,12 @@ public class SubredditManager {
             subreddits.forEach(subreddit ->
                     subredditLinks.computeIfAbsent(subreddit.getGuild(), $ -> Collections.synchronizedList(new ArrayList<>())).add(subreddit));
         });
+    }
+
+    public Optional<SubredditLink> getLinkFromChannel(TextChannel channel) {
+        var subreddits = subredditLinks.get(channel.getGuild());
+        if (subreddits == null) return Optional.empty();
+        return subreddits.stream().filter(link -> link.getTextChannel().equals(channel)).findFirst();
     }
 
     public Map<Guild, List<SubredditLink>> getSubreddits() {
@@ -86,19 +93,25 @@ public class SubredditManager {
             }
 
             var subreddit = subredditOptional.get();
-            LOGGER.info("Pre subreddit: {}", subreddit);
+            LOGGER.info("Pre subreddit: {}", subreddit.getFullName());
             return discordStateManager.addSubredditChannel(guild, subreddit.getName())
                     .thenApply(textChannel -> {
+                        LOGGER.info("In text");
                         var link = new SubredditLink(textChannel, subreddit);
+                        LOGGER.info("Made link");
                         addSubreddit(link).join();
-                        LOGGER.info("Subreddit: {}", subreddit);
+                        LOGGER.info("Joined! Retting");
                         return Optional.of(subreddit);
+                    }).exceptionally(t -> {
+                        LOGGER.error("ERRRO", t);
+                        return Optional.empty();
                     }).join();
         });
     }
 
     public CompletableFuture<Void> addSubreddit(SubredditLink subredditLink) {
 //        if (hasSubreddit(subredditLink.getGuild(), subredditLink.getName())) return CompletableFuture.completedFuture(null);
+        LOGGER.info("Adding here!");
         sendInitialMessage(subredditLink);
         return databaseManager.addSubreddit(subredditLink.getTextChannel(), subredditLink.getName()).thenRun(() ->
                 subredditLinks.computeIfAbsent(subredditLink.getGuild(), $ -> Collections.synchronizedList(new ArrayList<>())).add(subredditLink));
@@ -106,7 +119,7 @@ public class SubredditManager {
 
     public void sendInitialMessage(SubredditLink subredditLink) {
         subredditLink.getTextChannel().sendMessage(EmbedUtils.createEmbed("Subreddit Info", embed -> {
-            embed.setDescription("This is the Discord channel for r/" + subredditLink.getName() + "\nTo view the next set of posts, do **/next** Sorting is not available at the time, however in the future it will be.");
+            embed.setDescription("This is the Discord channel for r/" + subredditLink.getName() + "\nTo view the next set of posts, do **/next**\nSorting is not available at the time, however in the future it will be.");
             embed.addField("**" + subredditLink.getName() + "**", subredditLink.getSubreddit().getPublicDescription(), false);
             EmbedUtils.setColor(embed, subredditLink);
         })).queue();

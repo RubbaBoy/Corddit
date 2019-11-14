@@ -39,11 +39,6 @@ public class SubredditDataFetcher {
     public void init() {
         var userless = Credentials.userless(configManager.get(CLIENTID), configManager.get(CLIENTSECRET), DEVICE_ID);
         userlessClient = OAuthHelper.automatic(redditManager.getNetworkAdapter(), userless);
-
-        getSubreddit("teenagers").thenAccept(subredditOptional -> subredditOptional.ifPresent(subreddit -> {
-            LOGGER.info("r/teenagers:");
-            LOGGER.info(subreddit.getPublicDescription());
-        }));
     }
 
     public CompletableFuture<Optional<Subreddit>> getSubreddit(String name) {
@@ -54,5 +49,9 @@ public class SubredditDataFetcher {
                 return Optional.empty();
             }
         });
+    }
+
+    public RedditClient getClient() {
+        return userlessClient;
     }
 }

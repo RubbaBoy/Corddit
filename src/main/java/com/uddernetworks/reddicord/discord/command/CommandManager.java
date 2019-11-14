@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.JDA;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static com.uddernetworks.reddicord.config.Config.PREFIX;
 
@@ -28,6 +29,10 @@ public class CommandManager {
     public CommandManager registerCommand(Command command) {
         commands.add(command);
         return this;
+    }
+
+    public <T extends Command> Optional<T> getCommand(Class<T> clazz) {
+        return commands.stream().filter(command -> command.getClass().equals(clazz)).findFirst().map(command -> (T) command);
     }
 
     public List<Command> getCommands() {

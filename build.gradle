@@ -1,11 +1,14 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
 group 'com.uddernetworks.reddicord'
 version '1.0.0'
 
 sourceCompatibility = 11
+
+mainClassName = 'com.uddernetworks.reddicord.Reddicord'
 
 repositories {
     mavenCentral()
@@ -31,4 +34,8 @@ dependencies {
     implementation 'net.dean.jraw:JRAW:1.1.0'
     implementation 'net.dean.jraw:JRAW:1.1.0:sources'
     implementation 'net.dean.jraw:JRAW:1.1.0:javadoc'
+}
+
+run {
+    jvmArgs("--add-opens", "jdk.jshell/jdk.jshell=ALL-UNNAMED")
 }

@@ -75,8 +75,6 @@ public class Reddicord {
         LOGGER.info("Starting web callback server...");
         webCallback.start();
 
-//        discordManager.getJDA().getCategoryById(644271080256569364L).delete().complete();
-
         LOGGER.info("Everything is ready!");
     }
 
@@ -102,6 +100,10 @@ public class Reddicord {
 
     public SubredditManager getSubredditManager() {
         return subredditManager;
+    }
+
+    public DiscordStateManager getDiscordStateManager() {
+        return discordStateManager;
     }
 
     public WebCallback getWebCallback() {
