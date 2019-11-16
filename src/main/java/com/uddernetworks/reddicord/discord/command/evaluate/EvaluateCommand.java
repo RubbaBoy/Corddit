@@ -9,6 +9,9 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.uddernetworks.reddicord.discord.reaction.ReactManager.Codepoint.GREEN_CHECK;
+import static com.uddernetworks.reddicord.discord.reaction.ReactManager.Codepoint.YELLOW_CIRCLE;
+
 public class EvaluateCommand extends Command {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EvaluateCommand.class);
@@ -48,11 +51,8 @@ public class EvaluateCommand extends Command {
 
         LOGGER.info("Code: \n{}\n", code);
 
-        var yellowCircle = "\uD83D\uDFE1";
-        var checkMark = "\u2705";
-
-        message.addReaction(yellowCircle).queue();
+        message.addReaction(YELLOW_CIRCLE).queue();
         shell.runCode(channel, author, code);
-        message.clearReactions().queue($ -> message.addReaction(checkMark).queue());
+        message.clearReactions().queue($ -> message.addReaction(GREEN_CHECK).queue());
     }
 }

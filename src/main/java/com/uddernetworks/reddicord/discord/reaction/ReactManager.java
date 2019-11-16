@@ -2,10 +2,14 @@ package com.uddernetworks.reddicord.discord.reaction;
 
 import com.uddernetworks.reddicord.discord.DiscordManager;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageDeleteEvent;
+import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactionEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
+import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionRemoveEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import javax.annotation.Nonnull;
@@ -32,23 +36,45 @@ public class ReactManager extends ListenerAdapter {
     }
 
     public ReactionListener createReactionListener(Message message, String codepoints, Consumer<Member> callback) {
-        return createReactionListener(message, codepoints, callback);
+        return createReactionListener(message, codepoints, callback, null, true, false);
     }
 
-    public ReactionListener createReactionListener(Message message, String codepoints, Consumer<Member> callback, boolean selfReact) {
-        return createReactionListener(message, codepoints, callback, selfReact, false);
+    public ReactionListener createReactionListener(Message message, String codepoints, Consumer<Member> onReact, Consumer<Member> onUnreact) {
+        return createReactionListener(message, codepoints, onReact, onUnreact, true, false);
     }
 
-    public ReactionListener createReactionListener(Message message, String codepoints, Consumer<Member> callback, boolean selfReact, boolean keepSingle) {
+    public ReactionListener createReactionListener(Message message, String codepoints, Consumer<Member> onReact, Consumer<Member> onUnreact, boolean selfReact, boolean keepSingle) {
         if (selfReact) message.addReaction(codepoints).queue();
-        Consumer<Member> override = callback;
+        Consumer<Member> override = onReact;
         if (keepSingle) {
             override = member -> {
                 message.removeReaction(codepoints, member.getUser()).queue();
-                callback.accept(member);
+                onReact.accept(member);
             };
         }
-        var listener = new ReactionListener(message, codepoints, override);
+        var listener = new ReactionListener(message, codepoints, override, onUnreact);
+        listeners.add(listener);
+        return listener;
+    }
+
+    public ReactionListener createReactionListener(Message message, Emote emote, Consumer<Member> callback) {
+        return createReactionListener(message, emote, callback, null, true, false);
+    }
+
+    public ReactionListener createReactionListener(Message message, Emote emote, Consumer<Member> onReact, Consumer<Member> onUnreact) {
+        return createReactionListener(message, emote, onReact, onUnreact, true, false);
+    }
+
+    public ReactionListener createReactionListener(Message message, Emote emote, Consumer<Member> onReact, Consumer<Member> onUnreact, boolean selfReact, boolean keepSingle) {
+        if (selfReact) message.addReaction(emote).queue();
+        Consumer<Member> override = onReact;
+        if (keepSingle) {
+            override = member -> {
+                message.removeReaction(emote, member.getUser()).queue();
+                onReact.accept(member);
+            };
+        }
+        var listener = new ReactionListener(message, emote, override, onUnreact);
         listeners.add(listener);
         return listener;
     }
@@ -58,32 +84,68 @@ public class ReactManager extends ListenerAdapter {
     }
 
     public void removeReactionListener(Message message) {
-        findReactionListener(message).ifPresent(listeners::remove);
+        removeReactionListener(message.getIdLong());
     }
 
-    public Optional<ReactionListener> findReactionListener(Message message) {
-        return findReactionListener(message.getIdLong());
+    public void removeReactionListener(long messageId) {
+        listeners.stream()
+                .filter(reactionListener -> reactionListener.getMessageId() == messageId)
+                .forEach(listeners::remove);
     }
 
-    public Optional<ReactionListener> findReactionListener(long messageId) {
+    public void removeReactionListener(Message message, MessageReaction.ReactionEmote reaction) {
+        findReactionListener(message, reaction).ifPresent(listeners::remove);
+    }
+
+    public Optional<ReactionListener> findReactionListener(Message message, MessageReaction.ReactionEmote reaction) {
+        return findReactionListener(message.getIdLong(), reaction);
+    }
+
+    public Optional<ReactionListener> findReactionListener(long messageId, MessageReaction.ReactionEmote reaction) {
         return listeners.stream()
                 .filter(reactionListener -> reactionListener.getMessageId() == messageId)
+                .filter(reactionListener -> {
+                    if (reaction.isEmoji()) {
+                        return reaction.getAsCodepoints().equalsIgnoreCase(reactionListener.getCodepoints());
+                    } else {
+                        return reaction.getIdLong() == reactionListener.getEmote().getIdLong();
+                    }
+                })
                 .findFirst();
     }
 
     @Override
+    public void onGuildMessageReactionRemove(@Nonnull GuildMessageReactionRemoveEvent event) {
+        reactionEvent(event, reactionListener -> reactionListener.onUnreact(event.getGuild().getMember(event.getUser())));
+    }
+
+    @Override
     public void onGuildMessageReactionAdd(@Nonnull GuildMessageReactionAddEvent event) {
+        reactionEvent(event, reactionListener -> reactionListener.onReact(event.getGuild().getMember(event.getUser())));
+    }
+
+    private void reactionEvent(GenericGuildMessageReactionEvent event, Consumer<ReactionListener> reactionEvent) {
         var user = event.getUser();
         if (user.isBot()) return;
-        var codepoints = event.getReactionEmote().getAsCodepoints();
-        findReactionListener(event.getMessageIdLong())
-                .filter(reactionListener -> codepoints.equalsIgnoreCase(reactionListener.getCodepoints()))
-                .ifPresent(reactionListener -> reactionListener.onReact(event.getGuild().getMember(user)));
+        var reaction = event.getReactionEmote();
+        var emote = reaction.getEmote().getIdLong();
+        var listener = findReactionListener(event.getMessageIdLong(), reaction);
+        listener.filter(reactionListener -> emote == reactionListener.getEmote().getIdLong())
+                .ifPresentOrElse(reactionEvent, () -> {
+                    if (!reaction.isEmoji()) return;
+                    var codepoints = reaction.getAsCodepoints();
+                    listener.filter(reactionListener -> codepoints.equalsIgnoreCase(reactionListener.getCodepoints()))
+                            .ifPresent(reactionEvent);
+                });
     }
 
     @Override
     public void onGuildMessageDelete(@Nonnull GuildMessageDeleteEvent event) {
-        findReactionListener(event.getMessageIdLong())
-                .ifPresent(listeners::remove);
+        removeReactionListener(event.getMessageIdLong());
+    }
+
+    public static class Codepoint {
+        public static String YELLOW_CIRCLE = "\uD83D\uDFE1";
+        public static String GREEN_CHECK = "\u2705";
     }
 }

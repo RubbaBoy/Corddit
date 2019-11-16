@@ -25,18 +25,18 @@ public class SubredditManager {
     private final Reddicord reddicord;
     private final DatabaseManager databaseManager;
     private final DiscordStateManager discordStateManager;
-    private final SubredditDataFetcher subredditDataFetcher;
+    private final SubredditDataManager subredditDataManager;
     private final Map<Guild, List<SubredditLink>> subredditLinks = new ConcurrentHashMap<>();
 
     public SubredditManager(Reddicord reddicord, DatabaseManager databaseManager, DiscordStateManager discordStateManager) {
         this.reddicord = reddicord;
         this.databaseManager = databaseManager;
         this.discordStateManager = discordStateManager;
-        this.subredditDataFetcher = new SubredditDataFetcher(reddicord);
+        this.subredditDataManager = new SubredditDataManager(reddicord);
     }
 
     public CompletableFuture<Void> init() {
-        subredditDataFetcher.init();
+        subredditDataManager.init();
         return databaseManager.getAllSubreddits().thenAccept(subreddits -> {
             subredditLinks.clear();
             subreddits.forEach(subreddit ->
@@ -82,28 +82,17 @@ public class SubredditManager {
     }
 
     public CompletableFuture<Optional<Subreddit>> addSubreddit(Guild guild, String subredditName) {
-        if (hasSubreddit(guild, subredditName)) {
-            LOGGER.info("Has already!");
-            return CompletableFuture.completedFuture(null);
-        }
-        return subredditDataFetcher.getSubreddit(subredditName).thenApply(subredditOptional -> {
-            if (subredditOptional.isEmpty()) {
-                LOGGER.info("Subreddit empty!");
-                return Optional.empty();
-            }
-
+        if (hasSubreddit(guild, subredditName)) return CompletableFuture.completedFuture(null);
+        return subredditDataManager.getSubreddit(subredditName).thenApply(subredditOptional -> {
+            if (subredditOptional.isEmpty()) return Optional.empty();
             var subreddit = subredditOptional.get();
-            LOGGER.info("Pre subreddit: {}", subreddit.getFullName());
-            return discordStateManager.addSubredditChannel(guild, subreddit.getName())
+            return discordStateManager.addSubredditChannel(guild, subreddit)
                     .thenApply(textChannel -> {
-                        LOGGER.info("In text");
                         var link = new SubredditLink(textChannel, subreddit);
-                        LOGGER.info("Made link");
                         addSubreddit(link).join();
-                        LOGGER.info("Joined! Retting");
                         return Optional.of(subreddit);
                     }).exceptionally(t -> {
-                        LOGGER.error("ERRRO", t);
+                        LOGGER.error("Error while creating subreddit!", t);
                         return Optional.empty();
                     }).join();
         });
@@ -125,7 +114,7 @@ public class SubredditManager {
         })).queue();
     }
 
-    public SubredditDataFetcher getSubredditDataFetcher() {
-        return subredditDataFetcher;
+    public SubredditDataManager getSubredditDataManager() {
+        return subredditDataManager;
     }
 }

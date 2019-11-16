@@ -2,6 +2,7 @@ package com.uddernetworks.reddicord.discord;
 
 import com.uddernetworks.reddicord.Reddicord;
 import com.uddernetworks.reddicord.database.DatabaseManager;
+import net.dean.jraw.models.Subreddit;
 import net.dv8tion.jda.api.entities.Category;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -55,8 +56,8 @@ public class DiscordStateManager {
                 optionalCategory.orElseGet(() -> createCategory(guild).join()));
     }
 
-    public CompletableFuture<TextChannel> addSubredditChannel(Guild guild, String subreddit) {
+    public CompletableFuture<TextChannel> addSubredditChannel(Guild guild, Subreddit subreddit) {
         return getOrCreateCategory(guild).thenApply(category ->
-                    category.createTextChannel(subreddit).setTopic("Reddicord-managed channel for the r/" + subreddit + " subreddit").complete());
+                    category.createTextChannel(subreddit.getName()).setTopic("Reddicord-managed channel for the r/" + subreddit.getName() + " subreddit").setNSFW(subreddit.isNsfw()).complete());
     }
 }

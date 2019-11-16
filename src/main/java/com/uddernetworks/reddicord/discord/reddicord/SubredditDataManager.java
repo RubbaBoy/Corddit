@@ -17,9 +17,9 @@ import java.util.concurrent.CompletableFuture;
 import static com.uddernetworks.reddicord.config.Config.CLIENTID;
 import static com.uddernetworks.reddicord.config.Config.CLIENTSECRET;
 
-public class SubredditDataFetcher {
+public class SubredditDataManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SubredditDataFetcher.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SubredditDataManager.class);
 
     // TODO: This should probably be device-specific as the name implies, but whatever
     private static final UUID DEVICE_ID = UUID.fromString("54f24a5f-4522-4c34-b907-861c5af2dfc6");
@@ -30,7 +30,7 @@ public class SubredditDataFetcher {
 
     private RedditClient userlessClient;
 
-    public SubredditDataFetcher(Reddicord reddicord) {
+    public SubredditDataManager(Reddicord reddicord) {
         this.reddicord = reddicord;
         this.redditManager = reddicord.getRedditManager();
         this.configManager = reddicord.getConfigManager();
@@ -50,6 +50,8 @@ public class SubredditDataFetcher {
             }
         });
     }
+
+//    public CompletableFuture<Void> upvote(Subreddit subredd)
 
     public RedditClient getClient() {
         return userlessClient;

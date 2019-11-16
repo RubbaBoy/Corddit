@@ -15,6 +15,7 @@ import com.uddernetworks.reddicord.discord.reaction.ReactManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -38,6 +39,10 @@ public class DiscordManager extends ListenerAdapter {
     private CommandManager commandManager;
     private ReactManager reactManager;
     private JDA jda;
+
+    private Emote upvote;
+    private Emote comment;
+    private Emote downvote;
 
     public DiscordManager(Reddicord reddicord, ConfigManager configManager) {
         this.reddicord = reddicord;
@@ -67,7 +72,17 @@ public class DiscordManager extends ListenerAdapter {
                 .registerCommand(new ResetCommand(reddicord))
                 .registerCommand(new EvaluateCommand(reddicord));
 
+        emoteFromName("upvote").ifPresent(upvote -> this.upvote = upvote);
+        emoteFromName("comment").ifPresent(comment -> this.comment = comment);
+        emoteFromName("downvote").ifPresent(downvote -> this.downvote = downvote);
+
         initFuture.complete(null);
+    }
+
+    private Optional<Emote> emoteFromName(String name) {
+        var emotes = jda.getEmotesByName(name, true);
+        if (emotes.isEmpty()) return Optional.empty();
+        return Optional.of(emotes.get(0));
     }
 
     public Optional<User> getUser(long id) {
@@ -92,5 +107,17 @@ public class DiscordManager extends ListenerAdapter {
 
     public JDA getJDA() {
         return jda;
+    }
+
+    public Emote getUpvote() {
+        return upvote;
+    }
+
+    public Emote getComment() {
+        return comment;
+    }
+
+    public Emote getDownvote() {
+        return downvote;
     }
 }

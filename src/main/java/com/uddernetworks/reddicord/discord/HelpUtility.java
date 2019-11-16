@@ -21,8 +21,14 @@ public class HelpUtility {
                             commandRow("add [subreddit]", "Adds the given subreddit to the guild") +
                             commandRow("remove [subreddit]", "Removes the given subreddit from the guild")
                     );
-                    addCommand(embed, "link",
-                            commandRow("base", "DMs you a link to link your reddit and Discord account")
+                    addCommand(embed, "next",
+                            commandRow("base", "Displays the next set of 10 posts in the current subreddit channel")
+                    );
+                    addCommand(embed, "reset",
+                            commandRow("base", "Removes previous posts in the current subreddit channel and resets the paginator, allowing for new/unseen posts")
+                    );
+                    addCommand(embed, "list",
+                            commandRow("base", "Lists all linked accounts and subreddits. This command may be removed in the future")
                     );
                     addCommand(embed, "list",
                             commandRow("base", "Lists all linked accounts and subreddits. This command may be removed in the future")

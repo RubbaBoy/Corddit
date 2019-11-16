@@ -80,7 +80,7 @@ public class EmbedUtils extends ListenerAdapter {
      * https://stackoverflow.com/a/4129692/3929546
      */
     public static Color hex2Rgb(String colorStr) {
-        if (colorStr == null) return Color.BLACK;
+        if (colorStr == null || colorStr.length() != 7) return Color.BLACK;
         return new Color(
                 Integer.valueOf(colorStr.substring(1, 3), 16),
                 Integer.valueOf(colorStr.substring(3, 5), 16),
@@ -90,6 +90,7 @@ public class EmbedUtils extends ListenerAdapter {
     @Override
     public void onGuildMessageReactionAdd(@Nonnull GuildMessageReactionAddEvent event) {
         if (event.getUser().isBot()) return;
+        if (!event.getReactionEmote().isEmoji()) return;
         if (!event.getReactionEmote().getAsCodepoints().equalsIgnoreCase("U+1F5D1")) return;
         event.getChannel().retrieveMessageById(event.getMessageIdLong()).submit().thenAccept(message -> {
             var userId = event.getUser().getIdLong();

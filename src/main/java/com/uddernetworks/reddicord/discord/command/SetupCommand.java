@@ -64,7 +64,7 @@ public class SetupCommand extends Command {
             message.clearReactions().queue();
 
             // TODO: Setup
-        }, true);
+        });
 
         settingUp.put(guild, scheduledExecutor.scheduleAtFixedRate(() -> {
             if (seconds.decrementAndGet() < 0) {
