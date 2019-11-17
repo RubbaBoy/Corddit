@@ -6,6 +6,7 @@ import com.uddernetworks.reddicord.discord.DiscordManager;
 import com.uddernetworks.reddicord.discord.DiscordStateManager;
 import com.uddernetworks.reddicord.discord.HelpUtility;
 import com.uddernetworks.reddicord.discord.reddicord.SubredditManager;
+import com.uddernetworks.reddicord.discord.reddicord.comments.CommentManager;
 import com.uddernetworks.reddicord.reddit.RedditManager;
 import com.uddernetworks.reddicord.user.UserManager;
 import com.uddernetworks.reddicord.user.web.WebCallback;
@@ -29,6 +30,7 @@ public class Reddicord {
     private final DiscordManager discordManager;
     private final UserManager userManager;
     private final SubredditManager subredditManager;
+    private final CommentManager commentManager;
     private final DiscordStateManager discordStateManager;
     private final WebCallback webCallback;
 
@@ -49,6 +51,7 @@ public class Reddicord {
 
         this.discordStateManager = new DiscordStateManager(this, discordManager, databaseManager);
         this.subredditManager = new SubredditManager(this, databaseManager, discordStateManager);
+        this.commentManager = new CommentManager(this);
 
         HelpUtility.setCommandPrefix(configManager.get(PREFIX));
     }
@@ -74,6 +77,10 @@ public class Reddicord {
 
         LOGGER.info("Starting web callback server...");
         webCallback.start();
+
+        LOGGER.info("Clearing comment threads from discord...");
+        databaseManager.getAllGuildCategories().join().forEach((guild, category) ->
+                category.getTextChannels().stream().filter(channel -> channel.getName().startsWith("thread-")).forEach(channel -> channel.delete().queue()));
 
         LOGGER.info("Everything is ready!");
     }
@@ -108,5 +115,9 @@ public class Reddicord {
 
     public WebCallback getWebCallback() {
         return webCallback;
+    }
+
+    public CommentManager getCommentManager() {
+        return commentManager;
     }
 }

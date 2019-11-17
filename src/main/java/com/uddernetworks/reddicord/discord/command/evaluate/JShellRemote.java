@@ -97,6 +97,7 @@ public class JShellRemote {
         shell.eval("import static com.uddernetworks.reddicord.discord.command.evaluate.JShellRemote.subredditManager;");
         shell.eval("import static com.uddernetworks.reddicord.discord.command.evaluate.JShellRemote.discordStateManager;");
         shell.eval("import static com.uddernetworks.reddicord.discord.command.evaluate.JShellRemote.webCallback;");
+        shell.eval("import static com.uddernetworks.reddicord.discord.command.evaluate.JShellRemote.purge;");
     }
 
     public static CompletableFuture<Optional<Message>> respond(Object response) {
@@ -105,6 +106,15 @@ public class JShellRemote {
         var completableFuture = new CompletableFuture<Optional<Message>>();
         channel.sendMessage(string).queue(message -> completableFuture.complete(Optional.of(message)), completableFuture::completeExceptionally);
         return completableFuture;
+    }
+
+    public static void purge() {
+        purge(50);
+    }
+
+    public static void purge(int amount) {
+        var messages = channel.getHistory().retrievePast(amount).complete();
+        channel.deleteMessages(messages).queue();
     }
 
     public void runCode(TextChannel channel, Member author, String code) {

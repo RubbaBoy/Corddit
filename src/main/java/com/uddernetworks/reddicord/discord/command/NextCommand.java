@@ -81,6 +81,7 @@ public class NextCommand extends Command {
                 var hot = paginators.computeIfAbsent(link, $ -> link.getSubreddit().toReference(subredditDataManager.getClient()).posts().sorting(SubredditSort.HOT).limit(1).build());
                 for (int i = 0; i < 5; i++) {
                     var listing = hot.next();
+                    if (listing.isEmpty()) break;
                     var submission = listing.get(0);
 
                     var embed = new EmbedBuilder();
@@ -148,7 +149,15 @@ public class NextCommand extends Command {
 
                         reactManager.createReactionListener(message, comment,
                                 member -> {
-                                    LOGGER.info("Commenting is not implemented yet!");
+                                    userManager.getUser(member.getUser()).ifPresent(user -> {
+                                        reddicord.getCommentManager().openCommentThread(submission, channel, user).thenAccept(channelOptional -> {
+                                            channelOptional.ifPresentOrElse(commentChannel -> {
+                                                channel.sendMessage(author.getAsMention() + " Go to " + commentChannel.getChannel().getAsMention()).queue();
+                                            }, () -> {
+                                                EmbedUtils.error(channel, author, "Couldn't open the channel. Make sure to wait a few seconds between opening comment threads.");
+                                            });
+                                        });
+                                    });
                                 }, null, true, true);
 
                         reactManager.createReactionListener(message, downvote,

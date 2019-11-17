@@ -42,7 +42,6 @@ public class DiscordStateManager {
     }
 
     public CompletableFuture<Category> createCategory(Guild guild) {
-        LOGGER.info("Creating category!");
         var everyone = guild.getPublicRole();
         var subredditsCategory = guild.createCategory("subreddits")
 //                .addPermissionOverride(everyone, Collections.emptyList(), Arrays.asList(MANAGE_CHANNEL, MESSAGE_WRITE, MANAGE_PERMISSIONS)).complete();
@@ -51,7 +50,6 @@ public class DiscordStateManager {
     }
 
     public CompletableFuture<Category> getOrCreateCategory(Guild guild) {
-        LOGGER.info("Getting or creating category");
         return databaseManager.getGuildCategory(guild).thenApply(optionalCategory ->
                 optionalCategory.orElseGet(() -> createCategory(guild).join()));
     }

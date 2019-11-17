@@ -99,8 +99,6 @@ public class SubredditManager {
     }
 
     public CompletableFuture<Void> addSubreddit(SubredditLink subredditLink) {
-//        if (hasSubreddit(subredditLink.getGuild(), subredditLink.getName())) return CompletableFuture.completedFuture(null);
-        LOGGER.info("Adding here!");
         sendInitialMessage(subredditLink);
         return databaseManager.addSubreddit(subredditLink.getTextChannel(), subredditLink.getName()).thenRun(() ->
                 subredditLinks.computeIfAbsent(subredditLink.getGuild(), $ -> Collections.synchronizedList(new ArrayList<>())).add(subredditLink));
