@@ -3,12 +3,12 @@ plugins {
     id 'application'
 }
 
-group 'com.uddernetworks.reddicord'
+group 'com.uddernetworks.disddit'
 version '1.0.0'
 
 sourceCompatibility = 11
 
-mainClassName = 'com.uddernetworks.reddicord.Reddicord'
+mainClassName = 'com.uddernetworks.disddit.Disddit'
 
 repositories {
     mavenCentral()
