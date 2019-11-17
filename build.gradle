@@ -3,12 +3,12 @@ plugins {
     id 'application'
 }
 
-group 'com.uddernetworks.disddit'
+group 'com.uddernetworks.corddit'
 version '1.0.0'
 
 sourceCompatibility = 11
 
-mainClassName = 'com.uddernetworks.disddit.Disddit'
+mainClassName = 'com.uddernetworks.corddit.Corddit'
 
 repositories {
     mavenCentral()
