@@ -2,6 +2,7 @@ package com.uddernetworks.corddit.discord.corddit.comments;
 
 import com.uddernetworks.corddit.Corddit;
 import com.uddernetworks.corddit.discord.DiscordManager;
+import com.uddernetworks.corddit.discord.input.UserInputListener;
 import com.uddernetworks.corddit.discord.reaction.ReactManager;
 import com.uddernetworks.corddit.discord.reaction.VoteListener;
 import com.uddernetworks.corddit.user.LinkedUser;
@@ -29,6 +30,7 @@ public class CommentChannel {
     private final Corddit corddit;
     private final DiscordManager discordManager;
     private final ReactManager reactManager;
+    private final UserInputListener userInputListener;
     private final TextChannel channel;
     private final RootCommentNode comments;
     private final LinkedUser user;
@@ -37,6 +39,7 @@ public class CommentChannel {
         this.corddit = corddit;
         this.discordManager = corddit.getDiscordManager();
         this.reactManager = discordManager.getReactManager();
+        this.userInputListener = discordManager.getUserInputListener();
         this.channel = channel;
         this.comments = submissionReference.comments();
         this.user = user;
@@ -52,6 +55,7 @@ public class CommentChannel {
                 if (comment.getDepth() == 0) continue;
                 processComment(comment);
             }
+            LOGGER.info("Done sendMessages!");
         }).exceptionally(t -> {
             LOGGER.error("An error occurred while sending comment messages", t);
             return null;
@@ -70,11 +74,12 @@ public class CommentChannel {
     private void sendComment(TextChannel channel, Comment comment, String username, int points, String time, int indentation, String text) {
         channel.sendMessage(topIndentation(indentation) + "**" + username + "**    " + points + " points \u00B7 " + time + "\n```" +
                 indentation(indentation) + text +
-                "```").queue(message -> {
-            new VoteListener<>(corddit, message, comment, user -> {
-                channel.sendMessage("Commenting will come soon!").queue();
-            }).startListener();
-        });
+                "```").queue(message ->
+                new VoteListener<>(corddit, message, comment, user -> {
+                    userInputListener.addListener(channel.getGuild().getMember(user.getDiscordUser()), channel, inputText -> {
+                        comment.toReference(user.getRedditAccount()).reply(inputText);
+                    }, confirmInput -> "Please react with the :white_check_mark: or :x: to confirm or deny the response with the following text:\n\n**" + confirmInput + "**");
+                }).startListener());
     }
 
     private String topIndentation(int amount) {

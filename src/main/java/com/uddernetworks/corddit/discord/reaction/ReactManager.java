@@ -12,6 +12,8 @@ import net.dv8tion.jda.api.events.message.guild.react.GenericGuildMessageReactio
 import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionRemoveEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -21,6 +23,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 public class ReactManager extends ListenerAdapter {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReactManager.class);
 
     private final List<ReactionListener> listeners = Collections.synchronizedList(new ArrayList<>());
     private final DiscordManager discordManager;
@@ -89,9 +93,7 @@ public class ReactManager extends ListenerAdapter {
     }
 
     public void removeReactionListener(long messageId) {
-        listeners.stream()
-                .filter(reactionListener -> reactionListener.getMessageId() == messageId)
-                .forEach(listeners::remove);
+        listeners.removeIf(reactionListener -> reactionListener == null || reactionListener.getMessageId() == messageId);
     }
 
     public void removeReactionListener(Message message, MessageReaction.ReactionEmote reaction) {
@@ -119,15 +121,18 @@ public class ReactManager extends ListenerAdapter {
         var user = event.getUser();
         if (user.isBot()) return;
         var reaction = event.getReactionEmote();
-        var emote = reaction.getEmote().getIdLong();
+
         var listener = findReactionListener(event.getMessageIdLong(), reaction);
-        listener.filter(reactionListener -> emote == reactionListener.getEmote().getIdLong())
-                .ifPresentOrElse(reactionEvent, () -> {
-                    if (!reaction.isEmoji()) return;
-                    var codepoints = reaction.getAsCodepoints();
-                    listener.filter(reactionListener -> codepoints.equalsIgnoreCase(reactionListener.getCodepoints()))
-                            .ifPresent(reactionEvent);
-                });
+
+        if (reaction.isEmote()) {
+            var emote = reaction.getEmote().getIdLong();
+            listener.filter(reactionListener -> emote == reactionListener.getEmote().getIdLong())
+                    .ifPresent(reactionEvent);
+        } else {
+            var codepoints = reaction.getAsCodepoints();
+            listener.filter(reactionListener -> codepoints.equalsIgnoreCase(reactionListener.getCodepoints()))
+                    .ifPresent(reactionEvent);
+        }
     }
 
     @Override
@@ -152,6 +157,7 @@ public class ReactManager extends ListenerAdapter {
 
     public static class Codepoint {
         public static String YELLOW_CIRCLE = "\uD83D\uDFE1";
-        public static String GREEN_CHECK = "\u2705";
+        public static String GREEN_CHECK = "U+2705";
+        public static String RED_X = "U+274C";
     }
 }

@@ -11,6 +11,7 @@ import com.uddernetworks.corddit.discord.command.ResetCommand;
 import com.uddernetworks.corddit.discord.command.SetupCommand;
 import com.uddernetworks.corddit.discord.command.SubredditCommand;
 import com.uddernetworks.corddit.discord.command.evaluate.EvaluateCommand;
+import com.uddernetworks.corddit.discord.input.UserInputListener;
 import com.uddernetworks.corddit.discord.reaction.ReactManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -38,6 +39,7 @@ public class DiscordManager extends ListenerAdapter {
     private final CompletableFuture<Void> initFuture = new CompletableFuture<>();
     private CommandManager commandManager;
     private ReactManager reactManager;
+    private UserInputListener userInputListener;
     private JDA jda;
 
     private Emote upvote;
@@ -56,6 +58,7 @@ public class DiscordManager extends ListenerAdapter {
                 .addEventListeners(this)
                 .addEventListeners(new EmbedUtils())
                 .addEventListeners(this.reactManager = new ReactManager(this))
+                .addEventListeners(this.userInputListener = new UserInputListener(corddit))
                 .build();
         return initFuture;
     }
@@ -103,6 +106,10 @@ public class DiscordManager extends ListenerAdapter {
 
     public ReactManager getReactManager() {
         return reactManager;
+    }
+
+    public UserInputListener getUserInputListener() {
+        return userInputListener;
     }
 
     public JDA getJDA() {

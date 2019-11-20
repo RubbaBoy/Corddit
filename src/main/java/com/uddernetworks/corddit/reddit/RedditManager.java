@@ -104,7 +104,7 @@ public class RedditManager {
         user.openPrivateChannel().queue(dm -> {
             waitingUsers.add(user);
             var statefulAuthHelper = OAuthHelper.interactive(networkAdapter, credentials, store);
-            var authUrl = statefulAuthHelper.getAuthorizationUrl(true, false, "read", "vote", "identity", "account", "save", "history");
+            var authUrl = statefulAuthHelper.getAuthorizationUrl(true, false, "read", "vote", "identity", "account", "save", "history", "mysubreddits", "submit", "flair");
             var query = WebCallback.getQuery(authUrl);
             var state = query.get("state");
 

@@ -43,8 +43,10 @@ public class EmbedUtils extends ListenerAdapter {
 
     public static Message sendEmbed(TextChannel channel, Member author, String title, Consumer<EmbedBuilder> embedBuilderConsumer) {
         var message = channel.sendMessage(createEmbed(author, title, embedBuilderConsumer)).complete();
-        message.addReaction("U+1F5D1").queue();
-        messageRequesters.put(message, author.getIdLong());
+        if (author != null) {
+            message.addReaction("U+1F5D1").queue();
+            messageRequesters.put(message, author.getIdLong());
+        }
         return message;
     }
 

@@ -23,6 +23,7 @@ public class VoteListener<T extends PublicContributionReference> {
     private final Corddit corddit;
     private final DiscordManager discordManager;
     private final UserManager userManager;
+    private final Consumer<LinkedUser> onUncomment;
     private final ReactManager reactManager;
     private final Consumer<LinkedUser> onComment;
 
@@ -35,12 +36,21 @@ public class VoteListener<T extends PublicContributionReference> {
     private ReactionListener commentListener;
     private ReactionListener downvoteListener;
 
+    public VoteListener(Corddit corddit, Message message, PublicContribution<T> contribution) {
+        this(corddit, message, contribution, $ -> {});
+    }
+
     public VoteListener(Corddit corddit, Message message, PublicContribution<T> contribution, Consumer<LinkedUser> onComment) {
+        this(corddit, message, contribution, onComment, $ -> {});
+    }
+
+    public VoteListener(Corddit corddit, Message message, PublicContribution<T> contribution, Consumer<LinkedUser> onComment, Consumer<LinkedUser> onUncomment) {
         this.corddit = corddit;
         this.discordManager = corddit.getDiscordManager();
         this.userManager = corddit.getUserManager();
         this.reactManager = discordManager.getReactManager();
         this.onComment = onComment;
+        this.onUncomment = onUncomment;
         this.contribution = contribution;
         this.message = message;
         this.channel = message.getTextChannel();
@@ -63,9 +73,8 @@ public class VoteListener<T extends PublicContributionReference> {
                 });
 
         commentListener = reactManager.createReactionListener(message, discordManager.getComment(),
-                member -> {
-                    userManager.getUser(member.getUser()).ifPresent(onComment);
-                }, null, true, true);
+                member -> userManager.getUser(member.getUser()).ifPresent(onComment),
+                member -> userManager.getUser(member.getUser()).ifPresent(onUncomment), true, true);
 
         downvoteListener = reactManager.createReactionListener(message, discordManager.getDownvote(),
                 member -> { // Downvote
